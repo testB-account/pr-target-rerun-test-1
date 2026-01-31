@@ -1,0 +1,31 @@
+name: PR Target Rerun Test
+
+on:
+  pull_request_target:
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gate on rerun actor mismatch
+        run: |
+          echo "actor='${{ github.actor }}'"
+          echo "triggering_actor='${{ github.triggering_actor }}'"
+          if [ "${{ github.actor }}" != "${{ github.triggering_actor }}" ]; then
+            echo "GATE=OPEN" >> $GITHUB_ENV
+          else
+            echo "GATE=CLOSED" >> $GITHUB_ENV
+          fi
+
+      - name: Privileged action (proof)
+        if: env.GATE == 'OPEN'
+        run: |
+          echo "rerun-proof $(date)" >> RERUN_PROOF.txt
+          git config user.email "actions@github.com"
+          git config user.name "github-actions"
+          git add RERUN_PROOF.txt
+          git commit -m "privileged write from pr_target rerun"
+          git push
